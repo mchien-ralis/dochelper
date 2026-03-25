@@ -179,14 +179,14 @@ export default function RequestPage() {
                   style={{ width: '100%', display: 'block' }} />
                 <div style={{
   position: 'absolute',
-  top: '5%',
-  left: '10%',
-  right: '10%',
-  bottom: '5%',
-  border: '2px dashed rgba(255,255,255,0.9)',
+  top: '15%',
+  left: '8%',
+  right: '8%',
+  bottom: '15%',
+  border: '3px dashed rgba(255,255,255,0.95)',
   borderRadius: '6px',
   pointerEvents: 'none',
-  boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)'
+  boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)'
 }} />
               </div>
               <canvas ref={canvasRef} style={{ display: 'none' }} />
