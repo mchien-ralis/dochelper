@@ -178,9 +178,16 @@ export default function RequestPage() {
                 <video ref={videoRef} autoPlay playsInline muted
                   style={{ width: '100%', display: 'block' }} />
                 <div style={{
-                  position: 'absolute', inset: '10%', border: '2px dashed rgba(255,255,255,0.8)',
-                  borderRadius: '4px', pointerEvents: 'none'
-                }} />
+  position: 'absolute',
+  top: '5%',
+  left: '10%',
+  right: '10%',
+  bottom: '5%',
+  border: '2px dashed rgba(255,255,255,0.9)',
+  borderRadius: '6px',
+  pointerEvents: 'none',
+  boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)'
+}} />
               </div>
               <canvas ref={canvasRef} style={{ display: 'none' }} />
               <button onClick={captureAndCrop}
