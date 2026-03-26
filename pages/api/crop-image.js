@@ -34,17 +34,21 @@ export default async function handler(req, res) {
               },
               {
                 type: 'text',
-                text: `Analyze this image and find the document in it. 
-                Return ONLY a JSON object with these fields:
-                {
-                  "found": true/false,
-                  "x": left edge as percentage of image width (0-100),
-                  "y": top edge as percentage of image height (0-100),
-                  "width": document width as percentage (0-100),
-                  "height": document height as percentage (0-100)
-                }
-                If no document is found, return {"found": false}.
-                Return ONLY the JSON, no other text.`
+                text: `Look at this image carefully. Find the document, paper, receipt, or card in it.
+                
+The image is 100 units wide and 100 units tall.
+
+Return ONLY a raw JSON object — no markdown, no backticks, no explanation.
+
+If you find a document:
+{"found": true, "x": LEFT_EDGE, "y": TOP_EDGE, "width": DOCUMENT_WIDTH, "height": DOCUMENT_HEIGHT}
+
+If no document found:
+{"found": false, "x": 0, "y": 0, "width": 100, "height": 100}
+
+All values are percentages of the full image dimensions (0-100).
+Be generous with the crop — include a small margin around the document.
+Return ONLY the JSON object, nothing else.`
               }
             ]
           }
@@ -53,12 +57,25 @@ export default async function handler(req, res) {
     })
 
     const data = await response.json()
+    
+    if (!data.content || !data.content[0]) {
+      return res.status(200).json({ found: false, x: 0, y: 0, width: 100, height: 100 })
+    }
+
     const text = data.content[0].text.trim()
-    const bounds = JSON.parse(text)
-    return res.status(200).json(bounds)
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim()
+
+    try {
+      const bounds = JSON.parse(text)
+      return res.status(200).json(bounds)
+    } catch {
+      return res.status(200).json({ found: false, x: 0, y: 0, width: 100, height: 100 })
+    }
 
   } catch (err) {
     console.error('Crop error:', err)
-    return res.status(500).json({ error: 'Failed to process image', found: false })
+    return res.status(200).json({ found: false, x: 0, y: 0, width: 100, height: 100 })
   }
 }
