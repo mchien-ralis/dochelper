@@ -4,11 +4,8 @@ import { useRouter } from 'next/router'
 export default function RequestPage() {
   const router = useRouter()
   const { id } = router.query
-  const [documents, setDocuments] = useState([
-    { name: "Driver's License", status: 'pending', images: [] },
-    { name: 'Proof of Income', status: 'pending', images: [] },
-    { name: 'Bank Statement', status: 'pending', images: [] }
-  ])
+  const [documents, setDocuments] = useState([])
+  const [loading, setLoading] = useState(true)
   const [activeDoc, setActiveDoc] = useState(null)
   const [pages, setPages] = useState([])
   const [submitting, setSubmitting] = useState(false)
@@ -18,6 +15,24 @@ export default function RequestPage() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
+
+  useEffect(() => {
+    if (id) fetchRequest()
+  }, [id])
+
+  const fetchRequest = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/get-request?id=${id}`)
+      const data = await res.json()
+      if (data.request) {
+        setDocuments(data.request.documents)
+      }
+    } catch (err) {
+      console.error('Failed to fetch request:', err)
+    }
+    setLoading(false)
+  }
 
   const startCamera = async () => {
     setScanning(true)
@@ -119,51 +134,57 @@ export default function RequestPage() {
     startCamera()
   }
 
- const handleSubmitDoc = async () => {
-  if (pages.length === 0) {
-    alert('Please scan at least one page first.')
-    return
-  }
-  setSubmitting(true)
+  const handleSubmitDoc = async () => {
+    if (pages.length === 0) {
+      alert('Please scan at least one page first.')
+      return
+    }
+    setSubmitting(true)
+    const imageData = pages.map(p => p.dataUrl)
 
-  const imageData = pages.map(p => p.dataUrl)
+    try {
+      const key = `dochelper_${id}_${activeDoc}`
+      localStorage.setItem(key, JSON.stringify(imageData))
+    } catch (e) {
+      console.log('Storage full')
+    }
 
-  // Save to localStorage as backup
-  try {
-    const key = `dochelper_${id}_${activeDoc}`
-    localStorage.setItem(key, JSON.stringify(imageData))
-  } catch (e) {
-    console.log('Storage full, skipping local save')
-  }
-
-  // Update status in Upstash database
-  try {
-    await fetch('/api/submit-document', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestId: id,
-        docName: activeDoc,
-        images: imageData
+    try {
+      await fetch('/api/submit-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: id,
+          docName: activeDoc,
+          images: imageData
+        })
       })
-    })
-  } catch (err) {
-    console.error('Failed to update document status:', err)
-  }
+    } catch (err) {
+      console.error('Failed to update document status:', err)
+    }
 
-  setDocuments(docs => docs.map(d =>
-    d.name === activeDoc ? { ...d, status: 'complete', images: imageData } : d
-  ))
-  setActiveDoc(null)
-  setPages([])
-  setSubmitting(false)
-}
+    setDocuments(docs => docs.map(d =>
+      d.name === activeDoc ? { ...d, status: 'complete', images: imageData } : d
+    ))
+    setActiveDoc(null)
+    setPages([])
+    setSubmitting(false)
+  }
 
   useEffect(() => {
     return () => stopCamera()
   }, [])
 
-  const allDone = documents.every(d => d.status === 'complete')
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
+        <h1>📄 DocHelper</h1>
+        <p style={{ color: '#6b7280' }}>Loading your documents...</p>
+      </div>
+    )
+  }
+
+  const allDone = documents.length > 0 && documents.every(d => d.status === 'complete')
 
   if (allDone) {
     return (
