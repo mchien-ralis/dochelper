@@ -119,30 +119,45 @@ export default function RequestPage() {
     startCamera()
   }
 
-  const handleSubmitDoc = async () => {
-    if (pages.length === 0) {
-      alert('Please scan at least one page first.')
-      return
-    }
-    setSubmitting(true)
-    await new Promise(r => setTimeout(r, 1500))
-
-    // Store images in localStorage so dashboard can access them
-    const imageData = pages.map(p => p.dataUrl)
-    const key = `dochelper_${id}_${activeDoc}`
-    try {
-      localStorage.setItem(key, JSON.stringify(imageData))
-    } catch (e) {
-      console.log('Storage full, skipping local save')
-    }
-
-    setDocuments(docs => docs.map(d =>
-      d.name === activeDoc ? { ...d, status: 'complete', images: imageData } : d
-    ))
-    setActiveDoc(null)
-    setPages([])
-    setSubmitting(false)
+ const handleSubmitDoc = async () => {
+  if (pages.length === 0) {
+    alert('Please scan at least one page first.')
+    return
   }
+  setSubmitting(true)
+
+  const imageData = pages.map(p => p.dataUrl)
+
+  // Save to localStorage as backup
+  try {
+    const key = `dochelper_${id}_${activeDoc}`
+    localStorage.setItem(key, JSON.stringify(imageData))
+  } catch (e) {
+    console.log('Storage full, skipping local save')
+  }
+
+  // Update status in Upstash database
+  try {
+    await fetch('/api/submit-document', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestId: id,
+        docName: activeDoc,
+        images: imageData
+      })
+    })
+  } catch (err) {
+    console.error('Failed to update document status:', err)
+  }
+
+  setDocuments(docs => docs.map(d =>
+    d.name === activeDoc ? { ...d, status: 'complete', images: imageData } : d
+  ))
+  setActiveDoc(null)
+  setPages([])
+  setSubmitting(false)
+}
 
   useEffect(() => {
     return () => stopCamera()
