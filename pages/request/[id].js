@@ -45,51 +45,74 @@ export default function RequestPage() {
     setScanning(false)
   }
 
+  const findDocumentBounds = (imageData, width, height) => {
+    const data = imageData.data
+    const edgeMap = []
+
+    for (let y = 0; y < height; y++) {
+      edgeMap[y] = []
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4
+        edgeMap[y][x] = (data[i] + data[i + 1] + data[i + 2]) / 3
+      }
+    }
+
+    const threshold = 30
+    let minX = width, maxX = 0, minY = height, maxY = 0
+
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const diff = Math.abs(edgeMap[y][x] - edgeMap[y][x + 1]) +
+          Math.abs(edgeMap[y][x] - edgeMap[y + 1][x])
+        if (diff > threshold) {
+          if (x < minX) minX = x
+          if (x > maxX) maxX = x
+          if (y < minY) minY = y
+          if (y > maxY) maxY = y
+        }
+      }
+    }
+
+    const pad = 15
+    const x = Math.max(0, minX - pad)
+    const y = Math.max(0, minY - pad)
+    const w = Math.min(width - x, maxX - minX + pad * 2)
+    const h = Math.min(height - y, maxY - minY + pad * 2)
+
+    if (w < width * 0.2 || h < height * 0.2) {
+      return { x: 0, y: 0, w: width, h: height }
+    }
+
+    return { x, y, w, h }
+  }
+
   const capturePhoto = async () => {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
 
-    // Capture frame
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     ctx.drawImage(video, 0, 0)
     stopCamera()
 
-    // Get base64
     const fullDataUrl = canvas.toDataURL('image/jpeg', 0.85)
-    const base64 = fullDataUrl.split(',')[1]
-
-    // Show processing state
     setPreviewImage(fullDataUrl)
     setProcessing(true)
 
     try {
-      // Send to Claude Vision API for crop detection
-      const res = await fetch('/api/crop-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64 })
-      })
-      const bounds = await res.json()
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const bounds = findDocumentBounds(imageData, canvas.width, canvas.height)
 
-      if (bounds.found) {
-        // Crop the image based on Claude's detected bounds
-        const cropCanvas = document.createElement('canvas')
-        const x = (bounds.x / 100) * canvas.width
-        const y = (bounds.y / 100) * canvas.height
-        const w = (bounds.width / 100) * canvas.width
-        const h = (bounds.height / 100) * canvas.height
-        cropCanvas.width = w
-        cropCanvas.height = h
-        const cropCtx = cropCanvas.getContext('2d')
-        cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h)
-        const croppedUrl = cropCanvas.toDataURL('image/jpeg', 0.85)
-        setPreviewImage(croppedUrl)
-      }
+      const cropCanvas = document.createElement('canvas')
+      cropCanvas.width = bounds.w
+      cropCanvas.height = bounds.h
+      const cropCtx = cropCanvas.getContext('2d')
+      cropCtx.drawImage(canvas, bounds.x, bounds.y, bounds.w, bounds.h, 0, 0, bounds.w, bounds.h)
+      setPreviewImage(cropCanvas.toDataURL('image/jpeg', 0.9))
     } catch (err) {
-      console.error('Crop failed, using full image', err)
+      console.error('Crop failed', err)
     }
 
     setProcessing(false)
@@ -171,7 +194,6 @@ export default function RequestPage() {
         <div>
           <h3>📷 Scanning: {activeDoc}</h3>
 
-          {/* Camera view */}
           {scanning && !previewImage && (
             <div style={{ marginBottom: '16px' }}>
               <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '3px solid #2563eb' }}>
@@ -189,23 +211,18 @@ export default function RequestPage() {
             </div>
           )}
 
-          {/* Processing state */}
           {processing && (
             <div style={{ textAlign: 'center', padding: '30px', background: '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
               <div style={{ fontSize: '36px', marginBottom: '12px' }}>✨</div>
               <p style={{ fontWeight: 'bold', color: '#2563eb' }}>Cleaning up your scan...</p>
-              <p style={{ color: '#666', fontSize: '14px' }}>AI is detecting and cropping your document</p>
-              {previewImage && (
-                <img src={previewImage} alt="processing" style={{ width: '100%', borderRadius: '6px', marginTop: '12px', opacity: 0.5 }} />
-              )}
             </div>
           )}
 
-          {/* Preview / approve state */}
           {previewImage && !processing && (
             <div style={{ marginBottom: '16px' }}>
-              <p style={{ fontWeight: 'bold', color: '#16a34a' }}>✅ Scan looks good?</p>
-              <img src={previewImage} alt="preview" style={{ width: '100%', borderRadius: '8px', border: '2px solid #86efac', marginBottom: '12px' }} />
+              <p style={{ fontWeight: 'bold', color: '#16a34a' }}>✅ Scan ready — does it look good?</p>
+              <img src={previewImage} alt="preview"
+                style={{ width: '100%', borderRadius: '8px', border: '2px solid #86efac', marginBottom: '12px' }} />
               <button onClick={acceptPhoto}
                 style={{ width: '100%', padding: '14px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginBottom: '8px' }}>
                 ✅ Looks Good
@@ -217,7 +234,6 @@ export default function RequestPage() {
             </div>
           )}
 
-          {/* Open camera button */}
           {!scanning && !previewImage && (
             <button onClick={startCamera}
               style={{ width: '100%', padding: '20px', background: '#1e40af', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginBottom: '16px' }}>
@@ -225,7 +241,6 @@ export default function RequestPage() {
             </button>
           )}
 
-          {/* Captured pages */}
           {pages.length > 0 && (
             <div style={{ marginBottom: '16px' }}>
               <p style={{ fontWeight: 'bold' }}>✅ {pages.length} page(s) captured:</p>
