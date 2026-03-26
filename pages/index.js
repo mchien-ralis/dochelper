@@ -7,295 +7,377 @@ export default function Home() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;500;600&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-          background: #0a0f1e;
-          color: #f0f4ff;
-          font-family: 'DM Sans', sans-serif;
+          background: #f8f9fc;
+          color: #1a2b4a;
+          font-family: 'Open Sans', sans-serif;
           min-height: 100vh;
-          overflow-x: hidden;
         }
 
-        .page {
-          min-height: 100vh;
+        .navbar {
+          background: #ffffff;
+          border-bottom: 1px solid #e8ecf2;
+          padding: 0 40px;
+          height: 64px;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          justify-content: center;
-          padding: 40px 24px;
-          position: relative;
+          justify-content: space-between;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
 
-        .orb {
-          position: fixed;
-          border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.15;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .orb-1 {
-          width: 500px; height: 500px;
-          background: #3b82f6;
-          top: -100px; right: -100px;
-        }
-
-        .orb-2 {
-          width: 400px; height: 400px;
-          background: #10b981;
-          bottom: -80px; left: -80px;
-        }
-
-        .orb-3 {
-          width: 300px; height: 300px;
-          background: #6366f1;
-          top: 40%; left: 40%;
-          transform: translate(-50%, -50%);
-        }
-
-        .content {
-          position: relative;
-          z-index: 1;
-          max-width: 560px;
-          width: 100%;
-          text-align: center;
-          opacity: ${mounted ? 1 : 0};
-          transform: translateY(${mounted ? 0 : 24}px);
-          transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .badge {
-          display: inline-flex;
+        .navbar-brand {
+          display: flex;
           align-items: center;
-          gap: 6px;
-          background: rgba(59,130,246,0.15);
-          border: 1px solid rgba(59,130,246,0.3);
-          color: #93c5fd;
-          padding: 6px 14px;
-          border-radius: 100px;
-          font-size: 12px;
+          gap: 10px;
+          text-decoration: none;
+        }
+
+        .navbar-logo {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 800;
+          font-size: 18px;
+          color: #1a2b4a;
+          letter-spacing: -0.02em;
+        }
+
+        .navbar-logo span {
+          color: #1d6fce;
+        }
+
+        .navbar-sub {
+          font-size: 11px;
+          color: #8494a9;
           font-weight: 500;
           letter-spacing: 0.05em;
           text-transform: uppercase;
-          margin-bottom: 28px;
         }
 
-        .badge-dot {
-          width: 6px; height: 6px;
-          border-radius: 50%;
-          background: #3b82f6;
-          animation: pulse 2s infinite;
+        .hero {
+          background: linear-gradient(160deg, #1a2b4a 0%, #1d4a8a 60%, #1d6fce 100%);
+          padding: 80px 40px 100px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
         }
 
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.8); }
+        .hero::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
 
-        .icon {
-          font-size: 56px;
-          margin-bottom: 20px;
+        .hero-content {
+          position: relative;
+          max-width: 640px;
+          margin: 0 auto;
+          opacity: ${mounted ? 1 : 0};
+          transform: translateY(${mounted ? 0 : 20}px);
+          transition: all 0.6s ease;
+        }
+
+        .hero-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #a8c8f0;
+          padding: 6px 16px;
+          border-radius: 100px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin-bottom: 24px;
+        }
+
+        .hero-icon {
+          font-size: 52px;
           display: block;
-          filter: drop-shadow(0 0 20px rgba(59,130,246,0.5));
+          margin-bottom: 20px;
         }
 
-        h1 {
-          font-family: 'Syne', sans-serif;
-          font-size: clamp(42px, 8vw, 64px);
+        .hero h1 {
+          font-family: 'Montserrat', sans-serif;
+          font-size: clamp(32px, 6vw, 52px);
           font-weight: 800;
-          line-height: 1;
+          color: #ffffff;
           letter-spacing: -0.03em;
+          line-height: 1.1;
           margin-bottom: 16px;
-          background: linear-gradient(135deg, #ffffff 0%, #93c5fd 50%, #34d399 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
         }
 
-        .tagline {
+        .hero h1 span {
+          color: #5db3f5;
+        }
+
+        .hero-sub {
           font-size: 17px;
-          color: #94a3b8;
+          color: #a8bdd4;
           line-height: 1.6;
-          margin-bottom: 48px;
-          max-width: 420px;
+          margin-bottom: 40px;
+          max-width: 480px;
           margin-left: auto;
           margin-right: auto;
         }
 
-        .buttons {
+        .hero-buttons {
           display: flex;
-          flex-direction: column;
           gap: 12px;
-          margin-bottom: 56px;
+          justify-content: center;
+          flex-wrap: wrap;
         }
 
-        .btn-primary {
-          display: flex;
+        .btn-white {
+          display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 18px 32px;
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
-          color: white;
-          border-radius: 14px;
+          gap: 8px;
+          padding: 14px 28px;
+          background: #ffffff;
+          color: #1a2b4a;
+          border-radius: 8px;
           text-decoration: none;
-          font-size: 16px;
-          font-weight: 600;
+          font-size: 15px;
+          font-weight: 700;
+          font-family: 'Montserrat', sans-serif;
           letter-spacing: -0.01em;
-          box-shadow: 0 8px 32px rgba(37,99,235,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.2);
           transition: all 0.2s ease;
-          border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .btn-primary:hover {
+        .btn-white:hover {
           transform: translateY(-2px);
-          box-shadow: 0 12px 40px rgba(37,99,235,0.5);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.25);
         }
 
-        .btn-secondary {
-          display: flex;
+        .btn-outline {
+          display: inline-flex;
           align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 18px 32px;
-          background: rgba(255,255,255,0.05);
-          color: #e2e8f0;
-          border-radius: 14px;
+          gap: 8px;
+          padding: 14px 28px;
+          background: transparent;
+          color: #ffffff;
+          border: 2px solid rgba(255,255,255,0.4);
+          border-radius: 8px;
           text-decoration: none;
-          font-size: 16px;
-          font-weight: 500;
-          border: 1px solid rgba(255,255,255,0.1);
+          font-size: 15px;
+          font-weight: 600;
           transition: all 0.2s ease;
-          backdrop-filter: blur(10px);
         }
 
-        .btn-secondary:hover {
-          background: rgba(255,255,255,0.08);
+        .btn-outline:hover {
+          background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.7);
           transform: translateY(-2px);
-          border-color: rgba(255,255,255,0.2);
+        }
+
+        .main {
+          max-width: 900px;
+          margin: -40px auto 0;
+          padding: 0 24px 80px;
+          position: relative;
+        }
+
+        .cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin-bottom: 48px;
+        }
+
+        .card {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 4px 20px rgba(26,43,74,0.08);
+          border: 1px solid #e8ecf2;
+          text-align: center;
+          transition: all 0.2s ease;
+        }
+
+        .card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 32px rgba(26,43,74,0.12);
+        }
+
+        .card-icon {
+          font-size: 32px;
+          margin-bottom: 12px;
+          display: block;
+        }
+
+        .card-title {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 14px;
+          font-weight: 700;
+          color: #1a2b4a;
+          margin-bottom: 6px;
+        }
+
+        .card-desc {
+          font-size: 12px;
+          color: #7a8fa6;
+          line-height: 1.5;
+        }
+
+        .how-it-works {
+          background: #ffffff;
+          border-radius: 16px;
+          padding: 36px;
+          box-shadow: 0 4px 20px rgba(26,43,74,0.08);
+          border: 1px solid #e8ecf2;
+        }
+
+        .section-label {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #1d6fce;
+          margin-bottom: 8px;
+        }
+
+        .section-title {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 22px;
+          font-weight: 800;
+          color: #1a2b4a;
+          margin-bottom: 28px;
+          letter-spacing: -0.02em;
         }
 
         .steps {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
-          padding: 28px;
-          text-align: left;
-          backdrop-filter: blur(20px);
-        }
-
-        .steps-title {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #475569;
-          margin-bottom: 20px;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 24px;
         }
 
         .step {
           display: flex;
-          gap: 14px;
+          flex-direction: column;
           align-items: flex-start;
-          padding: 12px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          gap: 10px;
         }
 
-        .step:last-child { border-bottom: none; }
-
         .step-num {
-          width: 28px; height: 28px;
-          border-radius: 8px;
-          background: rgba(59,130,246,0.15);
-          border: 1px solid rgba(59,130,246,0.2);
-          color: #60a5fa;
-          font-size: 12px;
-          font-weight: 700;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #1d6fce, #1a4a8a);
+          color: white;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 14px;
+          font-weight: 800;
           display: flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
-          font-family: 'Syne', sans-serif;
         }
 
-        .step-text strong {
-          display: block;
-          font-size: 14px;
-          font-weight: 600;
-          color: #e2e8f0;
-          margin-bottom: 2px;
-        }
-
-        .step-text span {
+        .step-title {
+          font-family: 'Montserrat', sans-serif;
           font-size: 13px;
-          color: #64748b;
-          line-height: 1.4;
+          font-weight: 700;
+          color: #1a2b4a;
+        }
+
+        .step-desc {
+          font-size: 12px;
+          color: #7a8fa6;
+          line-height: 1.5;
         }
 
         .footer {
-          margin-top: 32px;
+          text-align: center;
+          padding: 24px;
           font-size: 12px;
-          color: #334155;
-          letter-spacing: 0.02em;
+          color: #a0aebe;
+          border-top: 1px solid #e8ecf2;
+          background: white;
         }
 
-        @media (max-width: 480px) {
-          .page { padding: 24px 16px; }
+        @media (max-width: 600px) {
+          .hero { padding: 60px 24px 80px; }
+          .hero-buttons { flex-direction: column; align-items: center; }
+          .steps { grid-template-columns: 1fr 1fr; }
         }
       `}</style>
 
-      <div className="page">
-        <div className="orb orb-1" />
-        <div className="orb orb-2" />
-        <div className="orb orb-3" />
-
-        <div className="content">
-          <div className="badge">
-            <div className="badge-dot" />
-            Ralis AI Initiative
+      {/* Navbar */}
+      <nav className="navbar">
+        <div className="navbar-brand">
+          <div>
+            <div className="navbar-logo">Ralis <span>Services</span></div>
           </div>
+        </div>
+        <div className="navbar-sub">AI Initiative</div>
+      </nav>
 
-          <span className="icon">📄</span>
-          <h1>DocHelper</h1>
-
-          <p className="tagline">
+      {/* Hero */}
+      <div className="hero">
+        <div className="hero-content">
+          <div className="hero-badge">🚀 Internal Tool · AI Demo</div>
+          <span className="hero-icon">📄</span>
+          <h1>Doc<span>Helper</span></h1>
+          <p className="hero-sub">
             Smart document intake for modern teams.<br />
             Clients scan on their phone. You get clean PDFs.
           </p>
-
-          <div className="buttons">
-            <a href="/create" className="btn-primary">
-              ➕ New Document Request
-            </a>
-            <a href="/dashboard" className="btn-secondary">
-              📊 Processor Dashboard
-            </a>
+          <div className="hero-buttons">
+            <a href="/create" className="btn-white">➕ New Document Request</a>
+            <a href="/dashboard" className="btn-outline">📊 Processor Dashboard</a>
           </div>
+        </div>
+      </div>
 
+      {/* Main Content */}
+      <div className="main">
+
+        {/* Feature Cards */}
+        <div className="cards">
+          {[
+            { icon: '📱', title: 'Mobile First', desc: 'Clients scan from any phone — no app download required' },
+            { icon: '⚡', title: 'Instant Updates', desc: 'Dashboard updates in real time as documents arrive' },
+            { icon: '📥', title: 'Clean PDFs', desc: 'Scans auto-convert to organized, downloadable PDFs' },
+            { icon: '🔒', title: 'Secure Links', desc: 'Each request gets a unique, secure client link' }
+          ].map((c, i) => (
+            <div className="card" key={i}>
+              <span className="card-icon">{c.icon}</span>
+              <div className="card-title">{c.title}</div>
+              <div className="card-desc">{c.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* How It Works */}
+        <div className="how-it-works">
+          <div className="section-label">Workflow</div>
+          <div className="section-title">How DocHelper Works</div>
           <div className="steps">
-            <div className="steps-title">How it works</div>
             {[
-              { n: '01', title: 'Create a request', desc: 'Enter client email, case ID, and required documents' },
-              { n: '02', title: 'Send the link', desc: 'Client receives a secure link — no login required' },
-              { n: '03', title: 'Client scans on phone', desc: 'Documents captured with live camera, no app needed' },
-              { n: '04', title: 'Download clean PDF', desc: 'Processor receives organized PDFs ready to file' }
+              { n: '1', title: 'Create a Request', desc: 'Enter client email, case ID, and required document list' },
+              { n: '2', title: 'Send the Link', desc: 'Client receives a secure link — no login required' },
+              { n: '3', title: 'Client Scans', desc: 'Client opens link on phone and scans each document' },
+              { n: '4', title: 'Download PDF', desc: 'Processor receives clean PDFs ready to file' }
             ].map((s, i) => (
               <div className="step" key={i}>
                 <div className="step-num">{s.n}</div>
-                <div className="step-text">
-                  <strong>{s.title}</strong>
-                  <span>{s.desc}</span>
-                </div>
+                <div className="step-title">{s.title}</div>
+                <div className="step-desc">{s.desc}</div>
               </div>
             ))}
           </div>
-
-          <p className="footer">Built by Ralis Services · AI Demo Initiative · 2026</p>
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="footer">
+        © 2026 Ralis Services Corp. · DocHelper AI Initiative · Orange, CA
       </div>
     </>
   )
