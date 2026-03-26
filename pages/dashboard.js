@@ -62,16 +62,21 @@ export default function Dashboard() {
         if (stored) images = JSON.parse(stored)
       } catch (e) {}
 
-      // If no real images, use a placeholder for demo
-      if (images.length === 0) {
-        const placeholderRes = await fetch('https://via.placeholder.com/800x1000/ffffff/333333?text=' + encodeURIComponent(doc.name))
-        const blob = await placeholderRes.blob()
-        const reader = new FileReader()
-        await new Promise(resolve => {
-          reader.onloadend = resolve
-          reader.readAsDataURL(blob)
-        })
-        images = [reader.result]
+      // If no real images, generate a placeholder canvas for demo
+const placeholderCanvas = document.createElement('canvas')
+placeholderCanvas.width = 800
+placeholderCanvas.height = 1000
+const ctx = placeholderCanvas.getContext('2d')
+ctx.fillStyle = '#ffffff'
+ctx.fillRect(0, 0, 800, 1000)
+ctx.fillStyle = '#333333'
+ctx.font = 'bold 32px sans-serif'
+ctx.textAlign = 'center'
+ctx.fillText(doc.name, 400, 480)
+ctx.font = '24px sans-serif'
+ctx.fillText(req.caseId, 400, 530)
+ctx.fillText('Demo Document', 400, 580)
+images = [placeholderCanvas.toDataURL('image/jpeg', 0.85)]
       }
 
       // Generate PDF
