@@ -13,12 +13,15 @@ export default function RequestPage() {
   const [pages, setPages] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [previewImage, setPreviewImage] = useState(null)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
 
   const startCamera = async () => {
     setScanning(true)
+    setPreviewImage(null)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -42,65 +45,66 @@ export default function RequestPage() {
     setScanning(false)
   }
 
-  const captureAndCrop = () => {
+  const capturePhoto = async () => {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
 
-    const ctx = canvas.getContext('2d')
+    // Capture frame
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
     ctx.drawImage(video, 0, 0)
-
-    // Auto-crop: detect bright document area using edge analysis
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const bounds = detectDocumentBounds(imageData, canvas.width, canvas.height)
-
-    // Crop to detected bounds
-    const cropCanvas = document.createElement('canvas')
-    cropCanvas.width = bounds.w
-    cropCanvas.height = bounds.h
-    const cropCtx = cropCanvas.getContext('2d')
-    cropCtx.drawImage(canvas, bounds.x, bounds.y, bounds.w, bounds.h, 0, 0, bounds.w, bounds.h)
-
-    const dataUrl = cropCanvas.toDataURL('image/jpeg', 0.85)
-    setPages(prev => [...prev, { preview: dataUrl, dataUrl }])
     stopCamera()
+
+    // Get base64
+    const fullDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+    const base64 = fullDataUrl.split(',')[1]
+
+    // Show processing state
+    setPreviewImage(fullDataUrl)
+    setProcessing(true)
+
+    try {
+      // Send to Claude Vision API for crop detection
+      const res = await fetch('/api/crop-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64 })
+      })
+      const bounds = await res.json()
+
+      if (bounds.found) {
+        // Crop the image based on Claude's detected bounds
+        const cropCanvas = document.createElement('canvas')
+        const x = (bounds.x / 100) * canvas.width
+        const y = (bounds.y / 100) * canvas.height
+        const w = (bounds.width / 100) * canvas.width
+        const h = (bounds.height / 100) * canvas.height
+        cropCanvas.width = w
+        cropCanvas.height = h
+        const cropCtx = cropCanvas.getContext('2d')
+        cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h)
+        const croppedUrl = cropCanvas.toDataURL('image/jpeg', 0.85)
+        setPreviewImage(croppedUrl)
+      }
+    } catch (err) {
+      console.error('Crop failed, using full image', err)
+    }
+
+    setProcessing(false)
   }
 
-  const detectDocumentBounds = (imageData, width, height) => {
-    const data = imageData.data
-    const threshold = 200
-
-    let minX = width, maxX = 0, minY = height, maxY = 0
-    let found = false
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const i = (y * width + x) * 4
-        const r = data[i], g = data[i+1], b = data[i+2]
-        const brightness = (r + g + b) / 3
-        if (brightness > threshold) {
-          if (x < minX) minX = x
-          if (x > maxX) maxX = x
-          if (y < minY) minY = y
-          if (y > maxY) maxY = y
-          found = true
-        }
-      }
+  const acceptPhoto = () => {
+    if (previewImage) {
+      setPages(prev => [...prev, { preview: previewImage, dataUrl: previewImage }])
+      setPreviewImage(null)
     }
+  }
 
-    if (!found || (maxX - minX) < width * 0.2) {
-      return { x: 0, y: 0, w: width, h: height }
-    }
-
-    const pad = 20
-    return {
-      x: Math.max(0, minX - pad),
-      y: Math.max(0, minY - pad),
-      w: Math.min(width, maxX - minX + pad * 2),
-      h: Math.min(height, maxY - minY + pad * 2)
-    }
+  const retakePhoto = () => {
+    setPreviewImage(null)
+    startCamera()
   }
 
   const handleSubmitDoc = async () => {
@@ -167,46 +171,67 @@ export default function RequestPage() {
         <div>
           <h3>📷 Scanning: {activeDoc}</h3>
 
-          {!scanning ? (
-            <button onClick={startCamera}
-              style={{ width: '100%', padding: '20px', background: '#1e40af', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginBottom: '16px' }}>
-              📷 Open Camera
-            </button>
-          ) : (
+          {/* Camera view */}
+          {scanning && !previewImage && (
             <div style={{ marginBottom: '16px' }}>
               <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '3px solid #2563eb' }}>
-                <video ref={videoRef} autoPlay playsInline muted
-                  style={{ width: '100%', display: 'block' }} />
-                <div style={{
-  position: 'absolute',
-  top: '15%',
-  left: '8%',
-  right: '8%',
-  bottom: '15%',
-  border: '3px dashed rgba(255,255,255,0.95)',
-  borderRadius: '6px',
-  pointerEvents: 'none',
-  boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)'
-}} />
+                <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', display: 'block' }} />
               </div>
               <canvas ref={canvasRef} style={{ display: 'none' }} />
-              <button onClick={captureAndCrop}
+              <button onClick={capturePhoto}
                 style={{ width: '100%', marginTop: '12px', padding: '16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer' }}>
-                📸 Capture & Crop
+                📸 Take Photo
               </button>
-              <button onClick={stopCamera}
+              <button onClick={() => { stopCamera(); setActiveDoc(null) }}
                 style={{ width: '100%', marginTop: '8px', padding: '12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>
-                Cancel
+                ← Back
               </button>
             </div>
           )}
 
+          {/* Processing state */}
+          {processing && (
+            <div style={{ textAlign: 'center', padding: '30px', background: '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>✨</div>
+              <p style={{ fontWeight: 'bold', color: '#2563eb' }}>Cleaning up your scan...</p>
+              <p style={{ color: '#666', fontSize: '14px' }}>AI is detecting and cropping your document</p>
+              {previewImage && (
+                <img src={previewImage} alt="processing" style={{ width: '100%', borderRadius: '6px', marginTop: '12px', opacity: 0.5 }} />
+              )}
+            </div>
+          )}
+
+          {/* Preview / approve state */}
+          {previewImage && !processing && (
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontWeight: 'bold', color: '#16a34a' }}>✅ Scan looks good?</p>
+              <img src={previewImage} alt="preview" style={{ width: '100%', borderRadius: '8px', border: '2px solid #86efac', marginBottom: '12px' }} />
+              <button onClick={acceptPhoto}
+                style={{ width: '100%', padding: '14px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginBottom: '8px' }}>
+                ✅ Looks Good
+              </button>
+              <button onClick={retakePhoto}
+                style={{ width: '100%', padding: '12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>
+                🔄 Retake
+              </button>
+            </div>
+          )}
+
+          {/* Open camera button */}
+          {!scanning && !previewImage && (
+            <button onClick={startCamera}
+              style={{ width: '100%', padding: '20px', background: '#1e40af', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginBottom: '16px' }}>
+              📷 Open Camera
+            </button>
+          )}
+
+          {/* Captured pages */}
           {pages.length > 0 && (
             <div style={{ marginBottom: '16px' }}>
               <p style={{ fontWeight: 'bold' }}>✅ {pages.length} page(s) captured:</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {pages.map((p, i) => (
-                  <img key={i} src={p.preview} alt={`page ${i+1}`}
+                  <img key={i} src={p.preview} alt={`page ${i + 1}`}
                     style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #ccc' }} />
                 ))}
               </div>
@@ -224,10 +249,12 @@ export default function RequestPage() {
             </button>
           )}
 
-          <button onClick={() => { setActiveDoc(null); setPages([]); stopCamera() }}
-            style={{ width: '100%', padding: '12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>
-            ← Back to List
-          </button>
+          {!scanning && !previewImage && (
+            <button onClick={() => { setActiveDoc(null); setPages([]) }}
+              style={{ width: '100%', padding: '12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>
+              ← Back to List
+            </button>
+          )}
         </div>
       )}
     </div>
