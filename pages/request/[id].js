@@ -5,9 +5,9 @@ export default function RequestPage() {
   const router = useRouter()
   const { id } = router.query
   const [documents, setDocuments] = useState([
-    { name: "Driver's License", status: 'pending' },
-    { name: 'Proof of Income', status: 'pending' },
-    { name: 'Bank Statement', status: 'pending' }
+    { name: "Driver's License", status: 'pending', images: [] },
+    { name: 'Proof of Income', status: 'pending', images: [] },
+    { name: 'Bank Statement', status: 'pending', images: [] }
   ])
   const [activeDoc, setActiveDoc] = useState(null)
   const [pages, setPages] = useState([])
@@ -48,7 +48,6 @@ export default function RequestPage() {
   const findDocumentBounds = (imageData, width, height) => {
     const data = imageData.data
     const edgeMap = []
-
     for (let y = 0; y < height; y++) {
       edgeMap[y] = []
       for (let x = 0; x < width; x++) {
@@ -56,10 +55,8 @@ export default function RequestPage() {
         edgeMap[y][x] = (data[i] + data[i + 1] + data[i + 2]) / 3
       }
     }
-
     const threshold = 30
     let minX = width, maxX = 0, minY = height, maxY = 0
-
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         const diff = Math.abs(edgeMap[y][x] - edgeMap[y][x + 1]) +
@@ -72,17 +69,14 @@ export default function RequestPage() {
         }
       }
     }
-
     const pad = 15
     const x = Math.max(0, minX - pad)
     const y = Math.max(0, minY - pad)
     const w = Math.min(width - x, maxX - minX + pad * 2)
     const h = Math.min(height - y, maxY - minY + pad * 2)
-
     if (w < width * 0.2 || h < height * 0.2) {
       return { x: 0, y: 0, w: width, h: height }
     }
-
     return { x, y, w, h }
   }
 
@@ -90,21 +84,17 @@ export default function RequestPage() {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
-
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     ctx.drawImage(video, 0, 0)
     stopCamera()
-
     const fullDataUrl = canvas.toDataURL('image/jpeg', 0.85)
     setPreviewImage(fullDataUrl)
     setProcessing(true)
-
     try {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
       const bounds = findDocumentBounds(imageData, canvas.width, canvas.height)
-
       const cropCanvas = document.createElement('canvas')
       cropCanvas.width = bounds.w
       cropCanvas.height = bounds.h
@@ -114,7 +104,6 @@ export default function RequestPage() {
     } catch (err) {
       console.error('Crop failed', err)
     }
-
     setProcessing(false)
   }
 
@@ -137,8 +126,18 @@ export default function RequestPage() {
     }
     setSubmitting(true)
     await new Promise(r => setTimeout(r, 1500))
+
+    // Store images in localStorage so dashboard can access them
+    const imageData = pages.map(p => p.dataUrl)
+    const key = `dochelper_${id}_${activeDoc}`
+    try {
+      localStorage.setItem(key, JSON.stringify(imageData))
+    } catch (e) {
+      console.log('Storage full, skipping local save')
+    }
+
     setDocuments(docs => docs.map(d =>
-      d.name === activeDoc ? { ...d, status: 'complete' } : d
+      d.name === activeDoc ? { ...d, status: 'complete', images: imageData } : d
     ))
     setActiveDoc(null)
     setPages([])
@@ -197,8 +196,8 @@ export default function RequestPage() {
           {scanning && !previewImage && (
             <div style={{ marginBottom: '16px' }}>
               <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '3px solid #2563eb', background: '#000', aspectRatio: '4/5' }}>
-  <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
-</div>
+                <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
+              </div>
               <canvas ref={canvasRef} style={{ display: 'none' }} />
               <button onClick={capturePhoto}
                 style={{ width: '100%', marginTop: '12px', padding: '16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer' }}>
