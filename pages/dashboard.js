@@ -51,35 +51,32 @@ export default function Dashboard() {
 
   const handleDownload = async (req, doc) => {
     setDownloading(`${req.id}_${doc.name}`)
-
     try {
-      // Try to get real images from localStorage first
-      const key = `dochelper_${req.id}_${doc.name}`
       let images = []
 
       try {
+        const key = `dochelper_${req.id}_${doc.name}`
         const stored = localStorage.getItem(key)
         if (stored) images = JSON.parse(stored)
       } catch (e) {}
 
-      // If no real images, generate a placeholder canvas for demo
-const placeholderCanvas = document.createElement('canvas')
-placeholderCanvas.width = 800
-placeholderCanvas.height = 1000
-const ctx = placeholderCanvas.getContext('2d')
-ctx.fillStyle = '#ffffff'
-ctx.fillRect(0, 0, 800, 1000)
-ctx.fillStyle = '#333333'
-ctx.font = 'bold 32px sans-serif'
-ctx.textAlign = 'center'
-ctx.fillText(doc.name, 400, 480)
-ctx.font = '24px sans-serif'
-ctx.fillText(req.caseId, 400, 530)
-ctx.fillText('Demo Document', 400, 580)
-images = [placeholderCanvas.toDataURL('image/jpeg', 0.85)]
+      if (images.length === 0) {
+        const placeholderCanvas = document.createElement('canvas')
+        placeholderCanvas.width = 800
+        placeholderCanvas.height = 1000
+        const ctx = placeholderCanvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, 800, 1000)
+        ctx.fillStyle = '#333333'
+        ctx.font = 'bold 32px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText(doc.name, 400, 460)
+        ctx.font = '24px sans-serif'
+        ctx.fillText(req.caseId, 400, 510)
+        ctx.fillText('Demo Document', 400, 560)
+        images = [placeholderCanvas.toDataURL('image/jpeg', 0.85)]
       }
 
-      // Generate PDF
       const res = await fetch('/api/generate-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +90,6 @@ images = [placeholderCanvas.toDataURL('image/jpeg', 0.85)]
       const data = await res.json()
 
       if (data.pdf) {
-        // Trigger download
         const link = document.createElement('a')
         link.href = `data:application/pdf;base64,${data.pdf}`
         link.download = data.filename
@@ -103,7 +99,6 @@ images = [placeholderCanvas.toDataURL('image/jpeg', 0.85)]
       console.error('Download failed:', err)
       alert('Download failed. Please try again.')
     }
-
     setDownloading(null)
   }
 
@@ -128,8 +123,7 @@ images = [placeholderCanvas.toDataURL('image/jpeg', 0.85)]
                 style={{
                   padding: '16px', marginBottom: '12px', borderRadius: '8px',
                   border: '1px solid #e5e7eb', background: 'white',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                  cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}
                 onMouseOver={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
                 onMouseOut={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)'}
