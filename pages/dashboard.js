@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 const MOCK_REQUESTS = [
   {
@@ -45,8 +45,62 @@ const getOverallStatus = (documents) => {
 }
 
 export default function Dashboard() {
-  const [requests, setRequests] = useState(MOCK_REQUESTS)
+  const [requests] = useState(MOCK_REQUESTS)
   const [selected, setSelected] = useState(null)
+  const [downloading, setDownloading] = useState(null)
+
+  const handleDownload = async (req, doc) => {
+    setDownloading(`${req.id}_${doc.name}`)
+
+    try {
+      // Try to get real images from localStorage first
+      const key = `dochelper_${req.id}_${doc.name}`
+      let images = []
+
+      try {
+        const stored = localStorage.getItem(key)
+        if (stored) images = JSON.parse(stored)
+      } catch (e) {}
+
+      // If no real images, use a placeholder for demo
+      if (images.length === 0) {
+        const placeholderRes = await fetch('https://via.placeholder.com/800x1000/ffffff/333333?text=' + encodeURIComponent(doc.name))
+        const blob = await placeholderRes.blob()
+        const reader = new FileReader()
+        await new Promise(resolve => {
+          reader.onloadend = resolve
+          reader.readAsDataURL(blob)
+        })
+        images = [reader.result]
+      }
+
+      // Generate PDF
+      const res = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images,
+          docName: doc.name,
+          caseId: req.caseId
+        })
+      })
+
+      const data = await res.json()
+
+      if (data.pdf) {
+        // Trigger download
+        const link = document.createElement('a')
+        link.href = `data:application/pdf;base64,${data.pdf}`
+        link.download = data.filename
+        link.click()
+      }
+    } catch (err) {
+      console.error('Download failed:', err)
+      alert('Download failed. Please try again.')
+    }
+
+    setDownloading(null)
+  }
 
   return (
     <div style={{ padding: '24px', fontFamily: 'sans-serif', maxWidth: '700px', margin: '0 auto' }}>
@@ -63,14 +117,13 @@ export default function Dashboard() {
         <div>
           {requests.map((req) => {
             const status = getOverallStatus(req.documents)
-            const complete = req.documents.filter(d => d.status === 'complete').length
             return (
               <div key={req.id}
                 onClick={() => setSelected(req)}
                 style={{
                   padding: '16px', marginBottom: '12px', borderRadius: '8px',
                   border: '1px solid #e5e7eb', background: 'white',
-                  cursor: 'pointer', transition: 'box-shadow 0.2s',
+                  cursor: 'pointer',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}
                 onMouseOver={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
@@ -92,7 +145,6 @@ export default function Dashboard() {
                     {status.label}
                   </div>
                 </div>
-
                 <div style={{ marginTop: '12px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {req.documents.map((doc, i) => (
                     <span key={i} style={{
@@ -120,31 +172,40 @@ export default function Dashboard() {
             <p style={{ color: '#6b7280', marginTop: '-8px' }}>Case: {selected.caseId}</p>
 
             <div style={{ marginTop: '16px' }}>
-              {selected.documents.map((doc, i) => (
-                <div key={i} style={{
-                  padding: '14px', marginBottom: '10px', borderRadius: '8px',
-                  border: `1px solid ${doc.status === 'complete' ? '#86efac' : '#e5e7eb'}`,
-                  background: doc.status === 'complete' ? '#f0fdf4' : '#f9fafb',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}>
-                  <span style={{ fontWeight: '500' }}>{doc.name}</span>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {doc.status === 'complete' ? (
-                      <>
-                        <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✅ Received</span>
-                        <button style={{
-                          padding: '6px 12px', background: '#2563eb', color: 'white',
-                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'
-                        }}>
-                          ⬇️ Download
-                        </button>
-                      </>
-                    ) : (
-                      <span style={{ color: '#f59e0b', fontWeight: '500' }}>⏳ Awaiting</span>
-                    )}
+              {selected.documents.map((doc, i) => {
+                const isDownloading = downloading === `${selected.id}_${doc.name}`
+                return (
+                  <div key={i} style={{
+                    padding: '14px', marginBottom: '10px', borderRadius: '8px',
+                    border: `1px solid ${doc.status === 'complete' ? '#86efac' : '#e5e7eb'}`,
+                    background: doc.status === 'complete' ? '#f0fdf4' : '#f9fafb',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                  }}>
+                    <span style={{ fontWeight: '500' }}>{doc.name}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {doc.status === 'complete' ? (
+                        <>
+                          <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✅ Received</span>
+                          <button
+                            onClick={() => handleDownload(selected, doc)}
+                            disabled={isDownloading}
+                            style={{
+                              padding: '6px 12px',
+                              background: isDownloading ? '#ccc' : '#2563eb',
+                              color: 'white', border: 'none', borderRadius: '6px',
+                              cursor: isDownloading ? 'not-allowed' : 'pointer',
+                              fontSize: '12px'
+                            }}>
+                            {isDownloading ? '⏳ Generating...' : '⬇️ Download PDF'}
+                          </button>
+                        </>
+                      ) : (
+                        <span style={{ color: '#f59e0b', fontWeight: '500' }}>⏳ Awaiting</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
