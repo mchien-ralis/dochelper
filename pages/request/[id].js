@@ -16,18 +16,14 @@ export default function RequestPage() {
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
 
-  useEffect(() => {
-    if (id) fetchRequest()
-  }, [id])
+  useEffect(() => { if (id) fetchRequest() }, [id])
 
   const fetchRequest = async () => {
     setLoading(true)
     try {
       const res = await fetch(`/api/get-request?id=${id}`)
       const data = await res.json()
-      if (data.request) {
-        setDocuments(data.request.documents)
-      }
+      if (data.request) setDocuments(data.request.documents)
     } catch (err) {
       console.error('Failed to fetch request:', err)
     }
@@ -89,9 +85,7 @@ export default function RequestPage() {
     const y = Math.max(0, minY - pad)
     const w = Math.min(width - x, maxX - minX + pad * 2)
     const h = Math.min(height - y, maxY - minY + pad * 2)
-    if (w < width * 0.2 || h < height * 0.2) {
-      return { x: 0, y: 0, w: width, h: height }
-    }
+    if (w < width * 0.2 || h < height * 0.2) return { x: 0, y: 0, w: width, h: height }
     return { x, y, w, h }
   }
 
@@ -116,9 +110,7 @@ export default function RequestPage() {
       const cropCtx = cropCanvas.getContext('2d')
       cropCtx.drawImage(canvas, bounds.x, bounds.y, bounds.w, bounds.h, 0, 0, bounds.w, bounds.h)
       setPreviewImage(cropCanvas.toDataURL('image/jpeg', 0.9))
-    } catch (err) {
-      console.error('Crop failed', err)
-    }
+    } catch (err) { console.error('Crop failed', err) }
     setProcessing(false)
   }
 
@@ -135,34 +127,19 @@ export default function RequestPage() {
   }
 
   const handleSubmitDoc = async () => {
-    if (pages.length === 0) {
-      alert('Please scan at least one page first.')
-      return
-    }
+    if (pages.length === 0) { alert('Please scan at least one page first.'); return }
     setSubmitting(true)
     const imageData = pages.map(p => p.dataUrl)
-
     try {
-      const key = `dochelper_${id}_${activeDoc}`
-      localStorage.setItem(key, JSON.stringify(imageData))
-    } catch (e) {
-      console.log('Storage full')
-    }
-
+      localStorage.setItem(`dochelper_${id}_${activeDoc}`, JSON.stringify(imageData))
+    } catch (e) {}
     try {
       await fetch('/api/submit-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requestId: id,
-          docName: activeDoc,
-          images: imageData
-        })
+        body: JSON.stringify({ requestId: id, docName: activeDoc, images: imageData })
       })
-    } catch (err) {
-      console.error('Failed to update document status:', err)
-    }
-
+    } catch (err) { console.error('Failed to update document status:', err) }
     setDocuments(docs => docs.map(d =>
       d.name === activeDoc ? { ...d, status: 'complete', images: imageData } : d
     ))
@@ -171,142 +148,366 @@ export default function RequestPage() {
     setSubmitting(false)
   }
 
-  useEffect(() => {
-    return () => stopCamera()
-  }, [])
-
-  if (loading) {
-    return (
-      <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-        <h1>📄 DocHelper</h1>
-        <p style={{ color: '#6b7280' }}>Loading your documents...</p>
-      </div>
-    )
-  }
+  useEffect(() => { return () => stopCamera() }, [])
 
   const allDone = documents.length > 0 && documents.every(d => d.status === 'complete')
 
-  if (allDone) {
-    return (
-      <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-        <h1>📄 DocHelper</h1>
-        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', padding: '30px' }}>
-          <div style={{ fontSize: '48px' }}>🎉</div>
-          <h2 style={{ color: '#16a34a' }}>All Done!</h2>
-          <p>All documents submitted successfully. Your processor has been notified.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '500px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '22px' }}>📄 DocHelper</h1>
-      <p style={{ color: '#666', marginTop: '-10px' }}>Please scan and submit the following documents:</p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;500;600&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f8f9fc; font-family: 'Open Sans', sans-serif; color: #1a2b4a; min-height: 100vh; }
 
-      {!activeDoc ? (
-        <div>
-          {documents.map((doc, i) => (
-            <div key={i} style={{
-              padding: '16px', marginBottom: '12px', borderRadius: '8px',
-              border: `1px solid ${doc.status === 'complete' ? '#86efac' : '#e5e7eb'}`,
-              background: doc.status === 'complete' ? '#f0fdf4' : 'white',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <span style={{ fontWeight: '500' }}>{doc.name}</span>
-              {doc.status === 'complete' ? (
-                <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✅ Done</span>
-              ) : (
-                <button onClick={() => setActiveDoc(doc.name)}
-                  style={{ padding: '8px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                  Scan
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div>
-          <h3>📷 Scanning: {activeDoc}</h3>
+        .mobile-header {
+          background: linear-gradient(135deg, #1a2b4a, #1d4a8a);
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .mobile-logo {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 800;
+          font-size: 16px;
+          color: white;
+          letter-spacing: -0.02em;
+        }
+        .mobile-logo span { color: #5db3f5; }
+        .mobile-sub {
+          font-size: 11px;
+          color: #7aa8d4;
+          font-weight: 500;
+          margin-left: auto;
+        }
 
-          {scanning && !previewImage && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '3px solid #2563eb', background: '#000', aspectRatio: '4/5' }}>
-                <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
+        .page { padding: 20px 16px 80px; max-width: 480px; margin: 0 auto; }
+
+        .loading-state {
+          text-align: center;
+          padding: 60px 20px;
+          color: #8494a9;
+        }
+        .loading-state div { font-size: 32px; margin-bottom: 12px; }
+
+        .section-title {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 13px;
+          font-weight: 700;
+          color: #8494a9;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin-bottom: 14px;
+        }
+
+        .doc-item {
+          background: white;
+          border-radius: 12px;
+          border: 1.5px solid #e8ecf2;
+          padding: 16px 18px;
+          margin-bottom: 10px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 2px 8px rgba(26,43,74,0.05);
+          transition: all 0.2s;
+        }
+        .doc-item-done {
+          background: #f0fdf4;
+          border-color: #86efac;
+        }
+        .doc-item-name {
+          font-weight: 600;
+          font-size: 15px;
+          color: #1a2b4a;
+        }
+        .doc-item-status {
+          font-size: 13px;
+          font-weight: 700;
+          color: #059669;
+          font-family: 'Montserrat', sans-serif;
+        }
+        .btn-scan {
+          padding: 9px 18px;
+          background: linear-gradient(135deg, #1d6fce, #1a4a8a);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+          box-shadow: 0 3px 10px rgba(29,111,206,0.3);
+          transition: all 0.2s;
+        }
+        .btn-scan:hover { transform: translateY(-1px); }
+
+        .scanner-header {
+          margin-bottom: 16px;
+        }
+        .scanner-title {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #1d6fce;
+          margin-bottom: 4px;
+        }
+        .scanner-doc {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 20px;
+          font-weight: 800;
+          color: #1a2b4a;
+        }
+
+        .camera-wrap {
+          border-radius: 12px;
+          overflow: hidden;
+          border: 2px solid #1d6fce;
+          background: #000;
+          aspectRatio: 4/5;
+          margin-bottom: 12px;
+          box-shadow: 0 4px 20px rgba(29,111,206,0.25);
+        }
+        .camera-video {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+        }
+
+        .btn-full {
+          width: 100%;
+          padding: 16px;
+          border: none;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 700;
+          font-family: 'Montserrat', sans-serif;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-bottom: 10px;
+          letter-spacing: -0.01em;
+        }
+        .btn-capture {
+          background: linear-gradient(135deg, #059669, #047857);
+          color: white;
+          box-shadow: 0 4px 16px rgba(5,150,105,0.35);
+        }
+        .btn-capture:hover { transform: translateY(-2px); }
+        .btn-open-camera {
+          background: linear-gradient(135deg, #1d6fce, #1a4a8a);
+          color: white;
+          box-shadow: 0 4px 16px rgba(29,111,206,0.35);
+        }
+        .btn-open-camera:hover { transform: translateY(-2px); }
+        .btn-submit {
+          background: linear-gradient(135deg, #059669, #047857);
+          color: white;
+          box-shadow: 0 4px 16px rgba(5,150,105,0.35);
+        }
+        .btn-submit:disabled { background: #a0b4c8; box-shadow: none; cursor: not-allowed; }
+        .btn-secondary {
+          background: white;
+          color: #5a7a9a;
+          border: 1.5px solid #d4dce8;
+          box-shadow: none;
+        }
+        .btn-secondary:hover { border-color: #1d6fce; color: #1d6fce; }
+
+        .processing-card {
+          text-align: center;
+          padding: 32px 20px;
+          background: white;
+          border-radius: 12px;
+          border: 1.5px solid #e8ecf2;
+          margin-bottom: 12px;
+        }
+        .processing-icon { font-size: 36px; margin-bottom: 10px; }
+        .processing-text {
+          font-family: 'Montserrat', sans-serif;
+          font-weight: 700;
+          color: #1d6fce;
+          font-size: 15px;
+        }
+        .processing-sub { font-size: 12px; color: #8494a9; margin-top: 4px; }
+
+        .preview-label {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 13px;
+          font-weight: 700;
+          color: #059669;
+          margin-bottom: 10px;
+        }
+        .preview-img {
+          width: 100%;
+          border-radius: 10px;
+          border: 2px solid #86efac;
+          margin-bottom: 12px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .pages-label {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 12px;
+          font-weight: 700;
+          color: #059669;
+          margin-bottom: 8px;
+        }
+        .pages-grid {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+        .page-thumb {
+          width: 72px;
+          height: 72px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 1.5px solid #86efac;
+        }
+        .add-page-btn {
+          padding: 8px 14px;
+          background: #f0fdf4;
+          border: 1.5px dashed #6ee7b7;
+          border-radius: 8px;
+          color: #059669;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: 'Montserrat', sans-serif;
+          margin-bottom: 16px;
+          transition: all 0.2s;
+        }
+        .add-page-btn:hover { background: #dcfce7; }
+
+        .done-card {
+          background: white;
+          border-radius: 16px;
+          border: 1.5px solid #86efac;
+          padding: 40px 24px;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(5,150,105,0.1);
+        }
+        .done-icon {
+          font-size: 52px;
+          margin-bottom: 16px;
+          display: block;
+        }
+        .done-title {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 24px;
+          font-weight: 800;
+          color: #059669;
+          margin-bottom: 10px;
+        }
+        .done-sub { font-size: 14px; color: #7a8fa6; line-height: 1.6; }
+      `}</style>
+
+      <div className="mobile-header">
+        <div className="mobile-logo">Ralis <span>Services</span></div>
+        <div className="mobile-sub">📄 DocHelper</div>
+      </div>
+
+      <div className="page">
+        {loading ? (
+          <div className="loading-state">
+            <div>⏳</div>
+            <p>Loading your documents...</p>
+          </div>
+        ) : allDone ? (
+          <div className="done-card">
+            <span className="done-icon">🎉</span>
+            <h2 className="done-title">All Done!</h2>
+            <p className="done-sub">All documents submitted successfully.<br />Your processor has been notified.</p>
+          </div>
+        ) : !activeDoc ? (
+          <div>
+            <div className="section-title">Documents Required</div>
+            {documents.map((doc, i) => (
+              <div key={i} className={doc.status === 'complete' ? 'doc-item doc-item-done' : 'doc-item'}>
+                <span className="doc-item-name">{doc.name}</span>
+                {doc.status === 'complete' ? (
+                  <span className="doc-item-status">✅ Done</span>
+                ) : (
+                  <button className="btn-scan" onClick={() => setActiveDoc(doc.name)}>
+                    Scan
+                  </button>
+                )}
               </div>
-              <canvas ref={canvasRef} style={{ display: 'none' }} />
-              <button onClick={capturePhoto}
-                style={{ width: '100%', marginTop: '12px', padding: '16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer' }}>
-                📸 Take Photo
-              </button>
-              <button onClick={() => { stopCamera(); setActiveDoc(null) }}
-                style={{ width: '100%', marginTop: '8px', padding: '12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>
-                ← Back
-              </button>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <div className="scanner-header">
+              <div className="scanner-title">Now Scanning</div>
+              <div className="scanner-doc">{activeDoc}</div>
             </div>
-          )}
 
-          {processing && (
-            <div style={{ textAlign: 'center', padding: '30px', background: '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '12px' }}>✨</div>
-              <p style={{ fontWeight: 'bold', color: '#2563eb' }}>Cleaning up your scan...</p>
-            </div>
-          )}
-
-          {previewImage && !processing && (
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ fontWeight: 'bold', color: '#16a34a' }}>✅ Scan ready — does it look good?</p>
-              <img src={previewImage} alt="preview"
-                style={{ width: '100%', borderRadius: '8px', border: '2px solid #86efac', marginBottom: '12px' }} />
-              <button onClick={acceptPhoto}
-                style={{ width: '100%', padding: '14px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginBottom: '8px' }}>
-                ✅ Looks Good
-              </button>
-              <button onClick={retakePhoto}
-                style={{ width: '100%', padding: '12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>
-                🔄 Retake
-              </button>
-            </div>
-          )}
-
-          {!scanning && !previewImage && (
-            <button onClick={startCamera}
-              style={{ width: '100%', padding: '20px', background: '#1e40af', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginBottom: '16px' }}>
-              📷 Open Camera
-            </button>
-          )}
-
-          {pages.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ fontWeight: 'bold' }}>✅ {pages.length} page(s) captured:</p>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {pages.map((p, i) => (
-                  <img key={i} src={p.preview} alt={`page ${i + 1}`}
-                    style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #ccc' }} />
-                ))}
+            {scanning && !previewImage && (
+              <div>
+                <div className="camera-wrap" style={{ aspectRatio: '4/5' }}>
+                  <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
+                </div>
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
+                <button className="btn-full btn-capture" onClick={capturePhoto}>📸 Take Photo</button>
+                <button className="btn-full btn-secondary" onClick={() => { stopCamera(); setActiveDoc(null) }}>← Back</button>
               </div>
-              <button onClick={startCamera}
-                style={{ marginTop: '8px', padding: '8px 16px', background: '#f0f0f0', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                + Add Another Page
+            )}
+
+            {processing && (
+              <div className="processing-card">
+                <div className="processing-icon">✨</div>
+                <div className="processing-text">Cleaning up your scan...</div>
+                <div className="processing-sub">Detecting document edges</div>
+              </div>
+            )}
+
+            {previewImage && !processing && (
+              <div>
+                <div className="preview-label">✅ Does this look good?</div>
+                <img src={previewImage} alt="preview" className="preview-img" />
+                <button className="btn-full btn-capture" onClick={acceptPhoto}>✅ Looks Good</button>
+                <button className="btn-full btn-secondary" onClick={retakePhoto}>🔄 Retake</button>
+              </div>
+            )}
+
+            {!scanning && !previewImage && (
+              <button className="btn-full btn-open-camera" onClick={startCamera}>📷 Open Camera</button>
+            )}
+
+            {pages.length > 0 && (
+              <div>
+                <div className="pages-label">✅ {pages.length} page(s) captured</div>
+                <div className="pages-grid">
+                  {pages.map((p, i) => (
+                    <img key={i} src={p.preview} alt={`page ${i + 1}`} className="page-thumb" />
+                  ))}
+                </div>
+                <button className="add-page-btn" onClick={startCamera}>+ Add Another Page</button>
+              </div>
+            )}
+
+            {pages.length > 0 && (
+              <button
+                className="btn-full btn-submit"
+                onClick={handleSubmitDoc}
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting...' : '✅ Submit Document'}
               </button>
-            </div>
-          )}
+            )}
 
-          {pages.length > 0 && (
-            <button onClick={handleSubmitDoc} disabled={submitting}
-              style={{ width: '100%', padding: '14px', background: submitting ? '#ccc' : '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: submitting ? 'not-allowed' : 'pointer', marginBottom: '10px' }}>
-              {submitting ? 'Submitting...' : '✅ Submit Document'}
-            </button>
-          )}
-
-          {!scanning && !previewImage && (
-            <button onClick={() => { setActiveDoc(null); setPages([]) }}
-              style={{ width: '100%', padding: '12px', background: '#f0f0f0', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>
-              ← Back to List
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+            {!scanning && !previewImage && (
+              <button className="btn-full btn-secondary" onClick={() => { setActiveDoc(null); setPages([]) }}>
+                ← Back to List
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   )
 }
