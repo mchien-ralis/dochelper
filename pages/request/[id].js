@@ -196,7 +196,7 @@ export default function RequestPage() {
 
           {scanning && !previewImage && (
             <div style={{ marginBottom: '16px' }}>
-              <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '3px solid #2563eb', background: '#000', aspectRatio: '9/16' }}>
+              <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '3px solid #2563eb', background: '#000', aspectRatio: '4/5' }}>
   <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
 </div>
               <canvas ref={canvasRef} style={{ display: 'none' }} />
