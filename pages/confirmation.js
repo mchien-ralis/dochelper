@@ -19,7 +19,6 @@ export default function Confirmation() {
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;500;600&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #f8f9fc; font-family: 'Open Sans', sans-serif; color: #1a2b4a; }
-
         .navbar {
           background: #ffffff;
           border-bottom: 1px solid #e8ecf2;
@@ -50,18 +49,22 @@ export default function Confirmation() {
           transition: all 0.2s;
         }
         .nav-link:hover { background: #f0f4ff; color: #1d6fce; }
-        .nav-link.primary {
+        .nav-link-primary {
+          padding: 8px 16px;
+          border-radius: 6px;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 600;
           background: #1d6fce;
           color: white;
+          transition: all 0.2s;
         }
-        .nav-link.primary:hover { background: #1a5fb8; }
-
+        .nav-link-primary:hover { background: #1a5fb8; }
         .page {
           max-width: 600px;
           margin: 48px auto;
           padding: 0 24px 80px;
         }
-
         .success-card {
           background: white;
           border-radius: 16px;
@@ -71,7 +74,6 @@ export default function Confirmation() {
           text-align: center;
           margin-bottom: 20px;
         }
-
         .success-icon {
           width: 64px;
           height: 64px;
@@ -84,7 +86,6 @@ export default function Confirmation() {
           margin: 0 auto 20px;
           box-shadow: 0 8px 24px rgba(16,185,129,0.3);
         }
-
         .success-title {
           font-family: 'Montserrat', sans-serif;
           font-size: 24px;
@@ -93,18 +94,12 @@ export default function Confirmation() {
           margin-bottom: 8px;
           letter-spacing: -0.02em;
         }
-
         .success-sub {
           font-size: 14px;
           color: #7a8fa6;
           margin-bottom: 32px;
         }
-
-        .success-sub strong {
-          color: #1a2b4a;
-          font-weight: 600;
-        }
-
+        .success-sub strong { color: #1a2b4a; font-weight: 600; }
         .link-section {
           background: #f8f9fc;
           border: 1.5px solid #e8ecf2;
@@ -113,7 +108,6 @@ export default function Confirmation() {
           margin-bottom: 16px;
           text-align: left;
         }
-
         .link-label {
           font-size: 11px;
           font-weight: 700;
@@ -123,7 +117,6 @@ export default function Confirmation() {
           margin-bottom: 8px;
           font-family: 'Montserrat', sans-serif;
         }
-
         .link-text {
           font-size: 13px;
           color: #3a5a7a;
@@ -131,11 +124,10 @@ export default function Confirmation() {
           line-height: 1.5;
           font-family: 'Courier New', monospace;
         }
-
-        .btn-copy {
+        .btn-copy-default {
           width: 100%;
           padding: 14px;
-          background: ${`copied ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #1d6fce, #1a4a8a)'`};
+          background: linear-gradient(135deg, #1d6fce, #1a4a8a);
           color: white;
           border: none;
           border-radius: 10px;
@@ -147,15 +139,27 @@ export default function Confirmation() {
           transition: all 0.3s ease;
           letter-spacing: -0.01em;
         }
-
-        .btn-copy:hover { transform: translateY(-2px); }
-
+        .btn-copy-default:hover { transform: translateY(-2px); }
+        .btn-copy-success {
+          width: 100%;
+          padding: 14px;
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          border: none;
+          border-radius: 10px;
+          font-size: 15px;
+          font-weight: 700;
+          font-family: 'Montserrat', sans-serif;
+          cursor: pointer;
+          box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+          transition: all 0.3s ease;
+          letter-spacing: -0.01em;
+        }
         .actions {
           display: flex;
           gap: 12px;
         }
-
-        .btn-action {
+        .btn-dashboard {
           flex: 1;
           padding: 14px;
           border-radius: 10px;
@@ -165,26 +169,32 @@ export default function Confirmation() {
           font-family: 'Montserrat', sans-serif;
           text-align: center;
           transition: all 0.2s;
-          border: none;
-          cursor: pointer;
-        }
-
-        .btn-dashboard {
           background: white;
           color: #1a2b4a;
           border: 1.5px solid #d4dce8;
           box-shadow: 0 2px 8px rgba(26,43,74,0.06);
+          display: block;
         }
         .btn-dashboard:hover {
           border-color: #1d6fce;
           color: #1d6fce;
           transform: translateY(-2px);
         }
-
         .btn-new {
+          flex: 1;
+          padding: 14px;
+          border-radius: 10px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 600;
+          font-family: 'Montserrat', sans-serif;
+          text-align: center;
+          transition: all 0.2s;
           background: linear-gradient(135deg, #1d6fce, #1a4a8a);
           color: white;
+          border: none;
           box-shadow: 0 4px 16px rgba(29,111,206,0.3);
+          display: block;
         }
         .btn-new:hover { transform: translateY(-2px); }
       `}</style>
@@ -195,7 +205,7 @@ export default function Confirmation() {
         </a>
         <div className="navbar-links">
           <a href="/dashboard" className="nav-link">Dashboard</a>
-          <a href="/create" className="nav-link primary">+ New Request</a>
+          <a href="/create" className="nav-link-primary">+ New Request</a>
         </div>
       </nav>
 
@@ -206,24 +216,21 @@ export default function Confirmation() {
           <p className="success-sub">
             Send this link to <strong>{email}</strong> to collect their documents.
           </p>
-
           <div className="link-section">
             <div className="link-label">📎 Client Link</div>
             <div className="link-text">{link}</div>
           </div>
-
-          <button className="btn-copy" onClick={copyLink}>
+          <button
+            className={copied ? 'btn-copy-success' : 'btn-copy-default'}
+            onClick={copyLink}
+          >
             {copied ? '✅ Copied to Clipboard!' : '📋 Copy Client Link'}
           </button>
         </div>
 
         <div className="actions">
-          <a href="/dashboard" className="btn-action btn-dashboard">
-            📊 View Dashboard
-          </a>
-          <a href="/create" className="btn-action btn-new">
-            ➕ New Request
-          </a>
+          <a href="/dashboard" className="btn-dashboard">📊 View Dashboard</a>
+          <a href="/create" className="btn-new">➕ New Request</a>
         </div>
       </div>
     </>
